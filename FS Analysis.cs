@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 //using System.Windows.Forms;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,21 +36,12 @@ namespace VMS.DV.PD.Scripting
             var NL = Environment.NewLine;
             string result = "";
             string temp = "";
+
+            //CAX Position for Hz Profile 
             int cent0 = 0;
             int cent90 = 0;
             int cent270 = 0;
-
-
-            PDSession sess = new PDSession();
-            
-
-            //DoseImage bdi = new DoseImage();
-            //Image p = bdi.Image;
-
-
-
-       
-
+           
 
 
             foreach (Course c in Pat.Courses)
@@ -60,28 +50,22 @@ namespace VMS.DV.PD.Scripting
 
                 {
                     
-
                     foreach (Beam pb in pln.Beams.Reverse())
                     {
 
                         foreach (Image di in pb.FieldImages)
                         {
                             
-
                             if (di.CreationDateTime.ToString().Substring(0, 10) == date)
 
-
                             {
-                                                                                              
-
+                                                                                       
+                                //Create Vertical and Horizontal Profiles
                                 HProf H = new HProf();
                                 VProf V = new VProf();
-
-                                //Jaw Linearity
-                                HProf Hb = new HProf();
+                                                            
 
                                 int x;
-
 
 
                                 if (pb.Id.Contains("BOTTOM"))
@@ -89,8 +73,8 @@ namespace VMS.DV.PD.Scripting
                                 {
                                     H.x1 = 348;
                                     H.x2 = 548;
-                                    H.y1 = 734; //CENTRE
-                                    H.y2 = 734; //THROUGH OPAQUE CROSS
+                                    H.y1 = 720;
+                                    H.y2 = 720;
 
                                     V.x1 = 460;
                                     V.x2 = 460;
@@ -99,20 +83,17 @@ namespace VMS.DV.PD.Scripting
 
                                 }
 
-
                                 if (pb.Id.Contains("TOP"))
 
                                 {
-                                    //H.x1 = 632;
-                                    //H.x2 = 832;
+                                   
 
-                                    H.x1 = 348; //732 centre
+                                    H.x1 = 348; 
                                     H.x2 = 1116;
 
                                     H.y1 = 435;
                                     H.y2 = 435;
-
-                                    //
+                                                                        
                                     V.x1 = 720;
                                     V.x2 = 720;
                                     //Range of vertical line around y=449
@@ -122,15 +103,13 @@ namespace VMS.DV.PD.Scripting
                                 }
 
 
-
                                 if (pb.Id.Contains("10x10"))
 
                                 {
-
-                                    //H.x1 = 395;
-                                    H.x1 = 348;
-                                    H.x2 = 842;
-                                    //H.x2 = 795;
+                                                                        
+                                    H.x1 = 395;
+                                    H.x2 = 795;
+                                   
                                     H.y1 = 600;
                                     H.y2 = 600;
 
@@ -190,23 +169,15 @@ namespace VMS.DV.PD.Scripting
 
                                 }
 
-                                //double max = 0;
-
-                                double scale = 0;
-                                scale = (double)400 / 1190;
+                               //Distance between adjacent pixels in mm
+                                double scale = scale = (double)400 / 1190;
 
 
                                 Frame f = di.Frames[0];
                                 var HStart = new VVector(H.x1, H.y1, 0); //start location of profile
                                 var HEnd = new VVector(H.x2, H.y2, 0);//end location of profile
                                 var Hline = f.GetImageProfile(HStart, HEnd, new double[Convert.ToInt64(VVector.Distance(HStart, HEnd)) + 1]);
-
-
-                                // Off the opaque marker for line bottom Left image
-                                var HbStart = new VVector(H.x1, 720, 0); //start location of profile
-                                var HbEnd = new VVector(H.x2, 720, 0);//end location of profile
-                                var Hbline = f.GetImageProfile(HbStart, HbEnd, new double[Convert.ToInt64(VVector.Distance(HbStart, HbEnd)) + 1]);
-
+                                                                                         
 
                                 var VStart = new VVector(V.x1, V.y1, 0); //start location of profile
                                 var VEnd = new VVector(V.x2, V.y2, 0);//end location of profile
@@ -219,25 +190,7 @@ namespace VMS.DV.PD.Scripting
 
                                 var HLine = Hline.ToArray();
                                 var VLine = Vline.ToArray();
-
-                                //Generate a separate horizonal line for identifying max dose and field edges
-                                var HbLine = Hline.ToArray();
-
-
-                                if (pb.Id.Contains("BOTTOM"))
-                                {
-                                    //Horizontal 
-                                    HbLine = Hbline.ToArray();
-
-
-                                    Hb.len = Hb.x2 - Hb.x1;
-                                    //Ensure length is even number
-                                    if (Hb.len % 2 != 0)
-                                    {
-                                        Hb.len = Hb.len + 1;
-                                    }
-
-                                }
+                                                                                             
 
                                 H.len = H.x2 - H.x1;
                                 V.len = V.y2 - V.y1;
@@ -252,31 +205,15 @@ namespace VMS.DV.PD.Scripting
                                 {
                                     V.len = V.len + 1;
                                 }
+                                                                                           
+                                                          
+                                //HORIZONTAL PROFILE
 
-
-                                //Calculating A
-
-                                double thisNum;
-
-                                //Find max vlaue along Horizontal profile
-
-                                double? maxVal = null; //nullable so this works even if you have all super-low negatives
-                                int index = -1;
-                                for (int k = 1; k < H.len; k++)
-                                {
-                                    thisNum = HLine[k].Value;
-                                    if (!maxVal.HasValue || thisNum > maxVal.Value)
-                                    {
-                                        maxVal = thisNum;
-                                        H.max = thisNum;
-                                        index = k;
-                                    }
-                                }
-
-                                // Find minimum vlaue along Horizontal profile
+                                // Find minimum vlaue along Horizontal profile, to identify radio-opaque marker and CAX of beam
 
                                 double? minVal = null; //nullable so this works even if you have all super-low negatives
-                                index = -1;
+                                int index = -1;
+                                double thisNum = 0;
                                 for (int l = (H.len / 2) - 10; l < (H.len / 2) + 10; l++)
                                 {
                                     thisNum = HLine[l].Value;
@@ -289,57 +226,19 @@ namespace VMS.DV.PD.Scripting
                                         index = l;
                                     }
                                 }
+                                                                                           
 
-                                
-
-                                //Find centre for bottom image- this should actually be maximum value as along missing bit of marker
-                                if (pb.Id.Contains("BOTTOM"))
-
-                                {
-                                    double? BTmaxVal = null; //nullable so this works even if you have all super-low negatives
-                                    index = -1;
-                                    for (int k = 1; k < H.len; k++)
-                                    {
-                                        thisNum = HLine[k].Value;
-                                        if (!BTmaxVal.HasValue || thisNum > BTmaxVal.Value)
-                                        {
-                                            BTmaxVal = thisNum;
-
-                                            //Applies to origin
-                                            H.min = thisNum;
-                                            index = k;
-                                        }
-                                    }
-
-                                    //Redraw Horizontal line off marker
-
-                                }
-
-
-
-                                //Position along line where minimum occurs
+                                //Position along Hz line where minimum occurs, indicating maker and CAX of beam
                                 H.origin = index;
 
-                                // int cent = H.origin;
-
-
-                                /*
-                                S.Show("cent=" + cent.ToString());
-
-                                if (pb.Id.Contains("10x10"))
-                                {
-                                    cent = H.origin - 143;
-                                }
-
-                                */
-
+                               
+                                // Use CAX of Top image Horizonal Profile to find 'CAX' of Bottom Image Horizontal Profile
 
                                 if (pb.Id.Contains("TOP"))
 
                                     
                                 {
                                     if (pln.Id.Contains("G=0"))
-
 
                                     {
                                         
@@ -357,12 +256,10 @@ namespace VMS.DV.PD.Scripting
                                         cent270 = H.origin - 285;
                                     }
 
-
                                 }
 
 
-
-
+                                //Assign CAX position of Horizonal Profile for Bottom Image
 
                                 if (pb.Id.Contains("BOTTOM"))
 
@@ -385,70 +282,38 @@ namespace VMS.DV.PD.Scripting
                                         H.origin = cent270;
                                     }
                                 }
+                                              
 
+                                
+                                // Calculate CAX dose for Hoizontal Profile of BOTTOM image
+                                if (pb.Id.Contains("BOTTOM"))
 
-
-
-
-                                // H.cent = H.origin - 16;
-                                //H.max = H.cent;
-
-                                /*
-                                if (!pb.Id.Contains("BOTTOM"))
                                 {
-                                    cent = H.origin - 16;
-
+                                    
+                                    H.min = (HLine[H.origin].Value);
+                                                                                                           
                                 }
 
+
+                                //Use CAX as normalization. Find 50% of CAX dose. 
 
                                 if (pb.Id.Contains("BOTTOM"))
+
                                 {
-                                    H.origin = cent;
+                                   //No maker for horizontal profile accross bottom image
+                                    H.Fifty = (H.min/2);
 
                                 }
 
-                                */
-
-
-
-                                // S.Show(H.origin.ToString());
-
-
-
-
-                                // Calculation along Hb profile which is offcentre
-                                if (pb.Id.Contains("BOTTOM"))
-                                {
-
-                                    
-
-                                    maxVal = null; //nullable so this works even if you have all super-low negatives
-                                    index = -1;
-                                    for (int k = 1; k < Hb.len; k++)
-                                    {
-                                        thisNum = HbLine[k].Value;
-                                        if (!maxVal.HasValue || thisNum > maxVal.Value)
-                                        {
-                                            maxVal = thisNum;
-                                            H.max = thisNum;
-                                            index = k;
-                                        }
-                                    }
-                                    
+                                else
+                                {  // Need to compensate for attenuation due to marker
+                                    H.Fifty = ((H.min * 1.01) / 2);
 
                                 }
 
 
+                                //Assign range along profile to look for 50% dose value
 
-                                //50% percent
-                                //H.Fifty = H.max / 2;
-
-                                //Use centre dose as normalization
-                                H.Fifty = H.min / 2;
-
-
-
-                                //Bottom. Use H.origin rather Hb.origin (should be correct)
                                 if (pb.Id.Contains("BOTTOM"))
 
                                 {
@@ -521,6 +386,8 @@ namespace VMS.DV.PD.Scripting
                                 }
 
 
+                                //Calculating A: Move along profile until until pixel value is 50% of normalisation dose
+
                                 for (x = H.A1; x < H.A2; x++)
                                 {
                                     if (HLine[x].Value > H.Fifty)
@@ -534,28 +401,9 @@ namespace VMS.DV.PD.Scripting
                                 H.A0 = x;
 
                                 H.A = ((H.origin - H.A0) * scale); //+ (scale/2);
+                                                                                           
 
-
-                                if (pb.Id.Contains("BOTTOM"))
-                                {
-                                    
-                                    for (x = H.A1; x < H.A2; x++)
-                                    {
-                                        if (HbLine[x].Value > H.Fifty)
-                                        {
-                                            break;
-                                        }
-                                    }
-
-                                    H.A0 = x;
-
-                                    H.A = ((H.origin - H.A0) * scale); // + (scale / 2);
-
-                                }
-
-
-                                //Calculating B
-
+                                //Calculating B: Move along profile until until pixel value is 50% of normalisation dose
 
                                 for (x = H.B2; x < H.B1; x++)
                                 {
@@ -569,44 +417,12 @@ namespace VMS.DV.PD.Scripting
 
 
                                 H.B = ((H.B0 - H.origin) * scale); // - (scale / 2);
+                                                             
 
+                                //VERTICAL PROFILE
 
-                                if (pb.Id.Contains("BOTTOM"))
-                                {
-                                    
-
-                                    for (x = H.B2; x < H.B1; x++)
-                                    {
-
-                                        //offcentre line
-                                        if (HbLine[x].Value < H.Fifty)
-                                        {
-                                            break;
-                                        }
-                                    }
-
-                                    H.B0 = x;
-
-                                    H.B = ((H.B0 - H.origin) * scale); // - (scale / 2);
-
-                                }
-
-
-                                //Calculating T
-
-                                maxVal = null; //nullable so this works even if you have all super-low negatives
-                                index = -1;
-                                for (int k = 1; k < V.len; k++)
-                                {
-                                    thisNum = VLine[k].Value;
-                                    if (!maxVal.HasValue || thisNum > maxVal.Value)
-                                    {
-                                        maxVal = thisNum;
-                                        V.max = thisNum;
-                                        index = k;
-                                    }
-                                }
-
+                                //Look for CAX position along vertical profile
+                                                              
 
                                 minVal = null; //nullable so this works even if you have all super-low negatives
                                 index = -1;
@@ -625,14 +441,12 @@ namespace VMS.DV.PD.Scripting
                                     }
                                 }
 
-
+                                //CAX position along Vertical Profile
                                 V.origin = index;
-                                //S.Show(index.ToString());
+                                                              
 
-                                //V.Fifty = V.max / 2;
-
-                                //Normalization at centre
-                                V.Fifty = V.min / 2;
+                                //Scale V.min to compensate for attenuation of Radio-Opaque Marker to calculate CAX dose
+                                V.Fifty = ((V.min*1.01) / 2);
 
 
                                 if (pb.Id.Contains("BOTTOM"))
@@ -650,11 +464,10 @@ namespace VMS.DV.PD.Scripting
 
                                 if (pb.Id.Contains("TOP"))
 
-                                {    //T2->T1=x++
+                                {    
                                     V.T1 = V.origin + 100;
                                     V.T2 = V.origin + 70;
-
-                                    //G2->G1=X--
+                                                                        
                                     V.G1 = V.origin - 80;
                                     V.G2 = V.origin - 40;
 
@@ -717,14 +530,11 @@ namespace VMS.DV.PD.Scripting
                                         break;
                                     }
                                 }
-
-                               
+                                                               
 
                                 V.T0 = x;
 
-
                                 V.T = ((V.T0 - V.origin) * scale); // - (scale / 2);
-
 
 
                                 for (x = V.G1; x < V.G2; x++)
@@ -738,10 +548,8 @@ namespace VMS.DV.PD.Scripting
                                 }
 
 
-
                                 V.G0 = x;
-
-                               
+                                                              
 
                                 V.G = ((V.origin - V.G0) * scale); // + (scale / 2);
 
@@ -794,14 +602,11 @@ namespace VMS.DV.PD.Scripting
                                 temp = pln.Id + ", " + pb.Id + ", " + di.CreationDateTime.ToString() + NL + A + B + G + T + NL;
 
 
-
                                 result = result + temp + NL + NL;
-                                // S.Show(result);
+                              
 
-                                //}
-
+                                
                             }
-
 
                         }
 
@@ -812,9 +617,7 @@ namespace VMS.DV.PD.Scripting
             S.Show(result);
         }
 
-
     }
-
 
     public class HProf
 
@@ -824,12 +627,7 @@ namespace VMS.DV.PD.Scripting
         public int y1 { get; set; }
         public int y2 { get; set; }
         public int origin { get; set; }
-
-        public int cent0 { get; set; }
-
-        public int cent90 { get; set; }
-
-        public int cent270 { get; set; }
+                
 
         public int A0 { get; set; }
         public double A { get; set; }
@@ -859,7 +657,7 @@ namespace VMS.DV.PD.Scripting
         public int T0 { get; set; }
         public double T { get; set; }
         public double min { get; set; }
-        public double max { get; set; }
+      
         public int len { get; set; }
         public int G1 { get; set; }
         public int G2 { get; set; }
@@ -868,10 +666,7 @@ namespace VMS.DV.PD.Scripting
         public double Fifty { get; set; }
 
     }
-
-
 }
-
 
 
 
