@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 //using System.Windows.Forms;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,6 @@ using System.Threading.Tasks;
 using S = System.Windows.MessageBox;
 
 using VMS.CA.Scripting;
-
 
 namespace VMS.DV.PD.Scripting
 {
@@ -22,11 +22,11 @@ namespace VMS.DV.PD.Scripting
         public void Execute(ScriptContext context)
         {
 
-
+            //System.Windows.Forms.MessageBox.Show("s");
             PDBeam beam = context.PDBeam;
             Patient Pat = context.Patient;
 
-
+            //S.Show(beam.Id);
 
             DoseImage pdi = context.DoseImage;
             Image i = pdi.Image;
@@ -37,22 +37,42 @@ namespace VMS.DV.PD.Scripting
             var NL = Environment.NewLine;
             string result = "";
             string temp = "";
+            int cent0 = 0;
+            int cent90 = 0;
+            int cent270 = 0;
+
+
+            PDSession sess = new PDSession();
+            
+
+            //DoseImage bdi = new DoseImage();
+            //Image p = bdi.Image;
+
+
+
+       
+
 
 
             foreach (Course c in Pat.Courses)
             {
                 foreach (PlanSetup pln in c.PlanSetups)
+
                 {
-                    foreach (Beam pb in pln.Beams)
+                    
+
+                    foreach (Beam pb in pln.Beams.Reverse())
                     {
+
                         foreach (Image di in pb.FieldImages)
                         {
+                            
 
                             if (di.CreationDateTime.ToString().Substring(0, 10) == date)
+
+
                             {
-
-
-                                //S.Show(pb.Id);
+                                                                                              
 
                                 HProf H = new HProf();
                                 VProf V = new VProf();
@@ -61,6 +81,45 @@ namespace VMS.DV.PD.Scripting
                                 HProf Hb = new HProf();
 
                                 int x;
+
+
+
+                                if (pb.Id.Contains("BOTTOM"))
+
+                                {
+                                    H.x1 = 348;
+                                    H.x2 = 548;
+                                    H.y1 = 734; //CENTRE
+                                    H.y2 = 734; //THROUGH OPAQUE CROSS
+
+                                    V.x1 = 460;
+                                    V.x2 = 460;
+                                    V.y1 = 636;
+                                    V.y2 = 836;
+
+                                }
+
+
+                                if (pb.Id.Contains("TOP"))
+
+                                {
+                                    //H.x1 = 632;
+                                    //H.x2 = 832;
+
+                                    H.x1 = 348; //732 centre
+                                    H.x2 = 1116;
+
+                                    H.y1 = 435;
+                                    H.y2 = 435;
+
+                                    //
+                                    V.x1 = 720;
+                                    V.x2 = 720;
+                                    //Range of vertical line around y=449
+                                    V.y1 = 349;
+                                    V.y2 = 549;
+
+                                }
 
 
 
@@ -131,6 +190,8 @@ namespace VMS.DV.PD.Scripting
 
                                 }
 
+                                //double max = 0;
+
                                 double scale = 0;
                                 scale = (double)400 / 1190;
 
@@ -141,17 +202,42 @@ namespace VMS.DV.PD.Scripting
                                 var Hline = f.GetImageProfile(HStart, HEnd, new double[Convert.ToInt64(VVector.Distance(HStart, HEnd)) + 1]);
 
 
+                                // Off the opaque marker for line bottom Left image
+                                var HbStart = new VVector(H.x1, 720, 0); //start location of profile
+                                var HbEnd = new VVector(H.x2, 720, 0);//end location of profile
+                                var Hbline = f.GetImageProfile(HbStart, HbEnd, new double[Convert.ToInt64(VVector.Distance(HbStart, HbEnd)) + 1]);
+
+
                                 var VStart = new VVector(V.x1, V.y1, 0); //start location of profile
                                 var VEnd = new VVector(V.x2, V.y2, 0);//end location of profile
                                 var Vline = f.GetImageProfile(VStart, VEnd, new double[Convert.ToInt64(VVector.Distance(VStart, VEnd)) + 1]);
 
-                                //Get pixels in image
+
                                 ushort[,] pixels = new ushort[f.XSize, f.YSize];
                                 f.GetVoxels(0, pixels);
+
 
                                 var HLine = Hline.ToArray();
                                 var VLine = Vline.ToArray();
 
+                                //Generate a separate horizonal line for identifying max dose and field edges
+                                var HbLine = Hline.ToArray();
+
+
+                                if (pb.Id.Contains("BOTTOM"))
+                                {
+                                    //Horizontal 
+                                    HbLine = Hbline.ToArray();
+
+
+                                    Hb.len = Hb.x2 - Hb.x1;
+                                    //Ensure length is even number
+                                    if (Hb.len % 2 != 0)
+                                    {
+                                        Hb.len = Hb.len + 1;
+                                    }
+
+                                }
 
                                 H.len = H.x2 - H.x1;
                                 V.len = V.y2 - V.y1;
@@ -204,12 +290,187 @@ namespace VMS.DV.PD.Scripting
                                     }
                                 }
 
+                                
+
+                                //Find centre for bottom image- this should actually be maximum value as along missing bit of marker
+                                if (pb.Id.Contains("BOTTOM"))
+
+                                {
+                                    double? BTmaxVal = null; //nullable so this works even if you have all super-low negatives
+                                    index = -1;
+                                    for (int k = 1; k < H.len; k++)
+                                    {
+                                        thisNum = HLine[k].Value;
+                                        if (!BTmaxVal.HasValue || thisNum > BTmaxVal.Value)
+                                        {
+                                            BTmaxVal = thisNum;
+
+                                            //Applies to origin
+                                            H.min = thisNum;
+                                            index = k;
+                                        }
+                                    }
+
+                                    //Redraw Horizontal line off marker
+
+                                }
+
+
+
                                 //Position along line where minimum occurs
                                 H.origin = index;
 
+                                // int cent = H.origin;
+
+
+                                /*
+                                S.Show("cent=" + cent.ToString());
+
+                                if (pb.Id.Contains("10x10"))
+                                {
+                                    cent = H.origin - 143;
+                                }
+
+                                */
+
+
+                                if (pb.Id.Contains("TOP"))
+
+                                    
+                                {
+                                    if (pln.Id.Contains("G=0"))
+
+
+                                    {
+                                        
+                                        cent0 = H.origin - 285;
+                                       
+                                    }
+
+                                    if (pln.Id.Contains("G=90"))
+                                    {
+                                        cent90 = H.origin - 285;
+                                    }
+
+                                    if (pln.Id.Contains("G=270"))
+                                    {
+                                        cent270 = H.origin - 285;
+                                    }
+
+
+                                }
+
+
+
+
+
+                                if (pb.Id.Contains("BOTTOM"))
+
+
+                                {
+                                    if (pln.Id.Contains("G=0"))
+                                    {
+                                        
+                                        H.origin = cent0;
+                                        
+                                    }
+
+                                    if (pln.Id.Contains("G=90"))
+                                    {
+                                        H.origin = cent90;
+                                    }
+
+                                    if (pln.Id.Contains("G=270"))
+                                    {
+                                        H.origin = cent270;
+                                    }
+                                }
+
+
+
+
+
+                                // H.cent = H.origin - 16;
+                                //H.max = H.cent;
+
+                                /*
+                                if (!pb.Id.Contains("BOTTOM"))
+                                {
+                                    cent = H.origin - 16;
+
+                                }
+
+
+                                if (pb.Id.Contains("BOTTOM"))
+                                {
+                                    H.origin = cent;
+
+                                }
+
+                                */
+
+
+
+                                // S.Show(H.origin.ToString());
+
+
+
+
+                                // Calculation along Hb profile which is offcentre
+                                if (pb.Id.Contains("BOTTOM"))
+                                {
+
+                                    
+
+                                    maxVal = null; //nullable so this works even if you have all super-low negatives
+                                    index = -1;
+                                    for (int k = 1; k < Hb.len; k++)
+                                    {
+                                        thisNum = HbLine[k].Value;
+                                        if (!maxVal.HasValue || thisNum > maxVal.Value)
+                                        {
+                                            maxVal = thisNum;
+                                            H.max = thisNum;
+                                            index = k;
+                                        }
+                                    }
+                                    
+
+                                }
+
+
 
                                 //50% percent
-                                H.Fifty = H.max / 2;
+                                //H.Fifty = H.max / 2;
+
+                                //Use centre dose as normalization
+                                H.Fifty = H.min / 2;
+
+
+
+                                //Bottom. Use H.origin rather Hb.origin (should be correct)
+                                if (pb.Id.Contains("BOTTOM"))
+
+                                {
+                                    H.A1 = H.origin - 90;
+                                    H.A2 = H.origin - 60;
+
+                                    H.B1 = H.origin + 90;
+                                    H.B2 = H.origin + 30;
+
+                                }
+
+
+                                if (pb.Id.Contains("TOP"))
+
+                                {
+                                    H.A1 = H.origin - 90;
+                                    H.A2 = H.origin - 60;
+
+                                    H.B1 = H.origin + 90;
+                                    H.B2 = H.origin + 30;
+
+                                }
 
 
                                 if (pb.Id.Contains("10x10"))
@@ -269,12 +530,32 @@ namespace VMS.DV.PD.Scripting
                                 }
 
 
+
                                 H.A0 = x;
 
-                                H.A = ((H.origin - H.A0) * scale);
+                                H.A = ((H.origin - H.A0) * scale); //+ (scale/2);
+
+
+                                if (pb.Id.Contains("BOTTOM"))
+                                {
+                                    
+                                    for (x = H.A1; x < H.A2; x++)
+                                    {
+                                        if (HbLine[x].Value > H.Fifty)
+                                        {
+                                            break;
+                                        }
+                                    }
+
+                                    H.A0 = x;
+
+                                    H.A = ((H.origin - H.A0) * scale); // + (scale / 2);
+
+                                }
 
 
                                 //Calculating B
+
 
                                 for (x = H.B2; x < H.B1; x++)
                                 {
@@ -287,7 +568,28 @@ namespace VMS.DV.PD.Scripting
                                 H.B0 = x;
 
 
-                                H.B = ((H.B0 - H.origin) * scale);
+                                H.B = ((H.B0 - H.origin) * scale); // - (scale / 2);
+
+
+                                if (pb.Id.Contains("BOTTOM"))
+                                {
+                                    
+
+                                    for (x = H.B2; x < H.B1; x++)
+                                    {
+
+                                        //offcentre line
+                                        if (HbLine[x].Value < H.Fifty)
+                                        {
+                                            break;
+                                        }
+                                    }
+
+                                    H.B0 = x;
+
+                                    H.B = ((H.B0 - H.origin) * scale); // - (scale / 2);
+
+                                }
 
 
                                 //Calculating T
@@ -318,17 +620,46 @@ namespace VMS.DV.PD.Scripting
                                         minVal = thisNum;
                                         V.min = thisNum;
                                         index = l;
-
+                                        // S.Show(index.ToString());
 
                                     }
                                 }
 
+
                                 V.origin = index;
                                 //S.Show(index.ToString());
 
-                                V.Fifty = V.max / 2;
+                                //V.Fifty = V.max / 2;
+
+                                //Normalization at centre
+                                V.Fifty = V.min / 2;
 
 
+                                if (pb.Id.Contains("BOTTOM"))
+
+                                {
+                                    
+                                    V.T1 = V.origin + 85;
+                                    V.T2 = V.origin + 45;
+
+                                    V.G1 = V.origin - 95;
+                                    V.G2 = V.origin - 65;
+
+                                }
+
+
+                                if (pb.Id.Contains("TOP"))
+
+                                {    //T2->T1=x++
+                                    V.T1 = V.origin + 100;
+                                    V.T2 = V.origin + 70;
+
+                                    //G2->G1=X--
+                                    V.G1 = V.origin - 80;
+                                    V.G2 = V.origin - 40;
+
+
+                                }
 
                                 if (pb.Id.Contains("10x10"))
 
@@ -387,6 +718,7 @@ namespace VMS.DV.PD.Scripting
                                     }
                                 }
 
+                               
 
                                 V.T0 = x;
 
@@ -406,8 +738,10 @@ namespace VMS.DV.PD.Scripting
                                 }
 
 
+
                                 V.G0 = x;
 
+                               
 
                                 V.G = ((V.origin - V.G0) * scale); // + (scale / 2);
 
@@ -416,6 +750,7 @@ namespace VMS.DV.PD.Scripting
                                 string T = V.T.ToString("0.0");
                                 string G = V.G.ToString("0.0");
 
+                                
 
                                 if (pb.Id.Contains("C=90"))
 
@@ -437,6 +772,16 @@ namespace VMS.DV.PD.Scripting
 
                                 }
 
+                                else if (pb.Id.Contains("C270"))
+
+                                {
+                                    A = "A (Y1) = " + A + "mm, ";
+                                    B = "B (Y1) = " + B + "mm, ";
+                                    G = "G (X1) = " + G + "mm, ";
+                                    T = "T (X2) = " + T + "mm";
+
+                                }
+
                                 else
                                 {
                                     A = "A (X1) = " + A + "mm, ";
@@ -448,7 +793,12 @@ namespace VMS.DV.PD.Scripting
 
                                 temp = pln.Id + ", " + pb.Id + ", " + di.CreationDateTime.ToString() + NL + A + B + G + T + NL;
 
+
+
                                 result = result + temp + NL + NL;
+                                // S.Show(result);
+
+                                //}
 
                             }
 
@@ -475,7 +825,12 @@ namespace VMS.DV.PD.Scripting
         public int y2 { get; set; }
         public int origin { get; set; }
 
-        public int cent { get; set; }
+        public int cent0 { get; set; }
+
+        public int cent90 { get; set; }
+
+        public int cent270 { get; set; }
+
         public int A0 { get; set; }
         public double A { get; set; }
         public int B0 { get; set; }
@@ -514,7 +869,9 @@ namespace VMS.DV.PD.Scripting
 
     }
 
+
 }
+
 
 
 
