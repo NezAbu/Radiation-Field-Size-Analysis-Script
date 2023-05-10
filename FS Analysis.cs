@@ -283,7 +283,6 @@ namespace VMS.DV.PD.Scripting
                                     }
                                 }
                                               
-
                                 
                                 // Calculate CAX dose for Hoizontal Profile of BOTTOM image
                                 if (pb.Id.Contains("BOTTOM"))
