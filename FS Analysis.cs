@@ -102,7 +102,6 @@ namespace VMS.DV.PD.Scripting
 
                                 }
 
-
                                 if (pb.Id.Contains("10x10"))
 
                                 {
