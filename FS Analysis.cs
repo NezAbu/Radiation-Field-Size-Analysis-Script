@@ -189,7 +189,7 @@ namespace VMS.DV.PD.Scripting
 
                                 var HLine = Hline.ToArray();
                                 var VLine = Vline.ToArray();
-                                                                                             
+                                                                                            
 
                                 H.len = H.x2 - H.x1;
                                 V.len = V.y2 - V.y1;
@@ -385,6 +385,7 @@ namespace VMS.DV.PD.Scripting
 
 
                                 //Calculating A: Move along profile until until pixel value is 50% of normalisation dose
+                                //Note profile goes left to right
 
                                 for (x = H.A1; x < H.A2; x++)
                                 {
@@ -395,10 +396,15 @@ namespace VMS.DV.PD.Scripting
                                 }
 
 
-
                                 H.A0 = x;
 
-                                H.A = ((H.origin - H.A0) * scale); //+ (scale/2);
+                                //Num pixel in length A * dist/pixel
+                               // H.A = ((H.origin - H.A0) * scale); //+ (scale/2);
+                                H.A = ((H.origin - H.A0) * scale) + ((HLine(H.A0).Value - H.Fifty)/(HLine(H.A0).Value - HLine(H.A0-1).Value))*scale)
+
+
+                                //Proportion of A
+                               ((HLine(H.A0).Value - H.Fifty)/(HLine(H.A0).Value - HLine(H.A0-1).Value))*scale)
                                                                                            
 
                                 //Calculating B: Move along profile until until pixel value is 50% of normalisation dose
@@ -434,8 +440,7 @@ namespace VMS.DV.PD.Scripting
                                         minVal = thisNum;
                                         V.min = thisNum;
                                         index = l;
-                                        // S.Show(index.ToString());
-
+                                       
                                     }
                                 }
 
@@ -445,7 +450,6 @@ namespace VMS.DV.PD.Scripting
 
                                 //Scale V.min to compensate for attenuation of Radio-Opaque Marker to calculate CAX dose
                                 V.Fifty = ((V.min*1.01) / 2);
-
 
                                 if (pb.Id.Contains("BOTTOM"))
 
@@ -468,7 +472,6 @@ namespace VMS.DV.PD.Scripting
                                                                         
                                     V.G1 = V.origin - 80;
                                     V.G2 = V.origin - 40;
-
 
                                 }
 
